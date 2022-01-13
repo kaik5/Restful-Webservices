@@ -2,6 +2,8 @@ package com.appdeveloperblog.app.ws.ui.controller;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,9 +13,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.appdeveloperblog.app.ws.Exceptions.UserServiceException;
 import com.appdeveloperblog.app.ws.service.UserService;
 import com.appdeveloperblog.app.ws.share.dto.UserDto;
 import com.appdeveloperblog.app.ws.ui.model.request.UserDetailRequestModel;
+import com.appdeveloperblog.app.ws.ui.model.response.ErrorMessages;
+import com.appdeveloperblog.app.ws.ui.model.response.OperationStatusModel;
+import com.appdeveloperblog.app.ws.ui.model.response.RequestOperationStatus;
 import com.appdeveloperblog.app.ws.ui.model.response.UserRest;
 
 @RestController
@@ -23,7 +29,7 @@ public class UserController
 	@Autowired
 	UserService userService;
 
-	@GetMapping(path = "/{id}")
+	@GetMapping(path = "/{id}", produces = {MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE}  )
 	public UserRest getUser(@PathVariable String id)
 	{
 		UserRest returnValue = new UserRest();
@@ -33,10 +39,12 @@ public class UserController
 		return returnValue;
 	}
 	
-	@PostMapping
-	public UserRest createUser(@RequestBody UserDetailRequestModel userDetails)
+	@PostMapping(consumes = {MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE} , produces = {MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE})
+	public UserRest createUser(@RequestBody UserDetailRequestModel userDetails) throws Exception
 	{
 		UserRest returnValue = new UserRest();
+		if(userDetails.getFirstName().isEmpty()) throw new UserServiceException(ErrorMessages.MISSING_REQUIRED_FIELD.getErrorMessage());
+
 		UserDto userDto = new UserDto(); 
 		BeanUtils.copyProperties(userDetails, userDto);
 		UserDto createdUser = userService.createUser(userDto);
@@ -45,15 +53,27 @@ public class UserController
 		return returnValue;
 	}
 	
-	@PutMapping
-	public String updateUser()
+	@PutMapping(path = "/{id}", produces = {MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE}  )
+	public UserRest updateUser(@PathVariable String id, @RequestBody UserDetailRequestModel userDetails)
 	{
-		return "update user was called";
-	}
-	@DeleteMapping
-	public String deleteUser()
-	{
-		return "delete user was called";
-	}
+		UserRest returnValue = new UserRest();
+		if(userDetails.getFirstName().isEmpty()) throw new UserServiceException(ErrorMessages.MISSING_REQUIRED_FIELD.getErrorMessage());
 
+		UserDto userDto = new UserDto(); 
+		BeanUtils.copyProperties(userDetails, userDto);
+		UserDto updatedUser = userService.updateUser(id, userDto);
+		BeanUtils.copyProperties(updatedUser, returnValue);
+		
+		return returnValue;
+		
+	}
+	@DeleteMapping(path = "/{id}", produces = {MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE}  )
+	public OperationStatusModel deleteUser(@PathVariable String id)
+	{
+		OperationStatusModel returnValue = new OperationStatusModel();
+		returnValue.setOperationName(RequestOperationName.DELETE.name());
+		userService.deleteUser(id);
+		returnValue.setOperationName(RequestOperationStatus.SUCCESS.name());
+		return returnValue;
+	}
 }

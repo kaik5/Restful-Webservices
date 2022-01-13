@@ -11,10 +11,12 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 
 import com.appdeveloperblog.app.ws.io.respositories.*;
+import com.appdeveloperblog.app.ws.Exceptions.UserServiceException;
 import com.appdeveloperblog.app.ws.io.entity.UserEntity;
 import com.appdeveloperblog.app.ws.service.UserService;
 import com.appdeveloperblog.app.ws.share.dto.UserDto;
 import com.appdeveloperblog.app.ws.shared.Utils;
+import com.appdeveloperblog.app.ws.ui.model.response.ErrorMessages;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -68,9 +70,33 @@ public class UserServiceImpl implements UserService {
 	public UserDto getUserByUserId(String userId) {
 		UserDto returnValue = new UserDto();
 		UserEntity userEntity = userRepository.findByUserId(userId);
-		if(userEntity == null) throw new UsernameNotFoundException(userId);
+		if(userEntity == null) throw new UsernameNotFoundException("User with ID " + userId + " does not exist.");
 		BeanUtils.copyProperties(userEntity, returnValue);
 		return returnValue;
+	}
+
+	@Override
+	public UserDto updateUser(String id, UserDto user) {
+		UserDto returnValue = new UserDto();
+		UserEntity userEntity = userRepository.findByUserId(id);
+		if(userEntity == null) throw new UserServiceException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+		userEntity.setFirstName(user.getFirstName());
+		userEntity.setLastName(user.getLastName());
+		UserEntity updatedUserDetails =  userRepository.save(userEntity);
+		BeanUtils.copyProperties(updatedUserDetails, returnValue);
+
+
+
+		return returnValue;
+	}
+
+	@Override
+	public void deleteUser(String id) 
+	{
+		UserEntity userEntity = userRepository.findByUserId(id);
+		if(userEntity == null) throw new UserServiceException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+		userRepository.delete(userEntity);
+		
 	}
 
 }
