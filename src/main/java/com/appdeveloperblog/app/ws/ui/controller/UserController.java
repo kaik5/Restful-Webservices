@@ -11,7 +11,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+
+import java.util.ArrayList;
+import java.util.List;
 
 import com.appdeveloperblog.app.ws.Exceptions.UserServiceException;
 import com.appdeveloperblog.app.ws.service.UserService;
@@ -23,7 +28,7 @@ import com.appdeveloperblog.app.ws.ui.model.response.RequestOperationStatus;
 import com.appdeveloperblog.app.ws.ui.model.response.UserRest;
 
 @RestController
-@RequestMapping("users") // http://localhost:8080/
+@RequestMapping("users") // http://localhost:8080/users
 public class UserController 
 {
 	@Autowired
@@ -75,5 +80,22 @@ public class UserController
 		userService.deleteUser(id);
 		returnValue.setOperationName(RequestOperationStatus.SUCCESS.name());
 		return returnValue;
+	}
+
+	@GetMapping(produces = {MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE} )
+	// params: spacific page and number  
+	public List<UserRest> getUsers(@RequestParam(value = "page", defaultValue = "0") int page, @RequestParam(value = "limit", defaultValue = "25") int limit)
+	{
+		List<UserRest> returnValue = new ArrayList<>();
+		List<UserDto> users = userService.getUsers(page, limit);
+
+		for(UserDto userDto : users)
+		{
+			UserRest userModel = new UserRest();
+			BeanUtils.copyProperties(userDto, userModel);
+			returnValue.add(userModel);
+		}
+		return returnValue;
+
 	}
 }
