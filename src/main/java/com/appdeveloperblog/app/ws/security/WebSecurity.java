@@ -2,17 +2,14 @@ package com.appdeveloperblog.app.ws.security;
 
 import com.appdeveloperblog.app.ws.service.UserService;
 
-import org.apache.catalina.User;
-import org.apache.catalina.authenticator.SpnegoAuthenticator.AuthenticateAction;
-import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
+
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCrypt;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @EnableWebSecurity
