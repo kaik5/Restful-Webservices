@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitterReturnValueHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,7 @@ import com.appdeveloperblog.app.ws.io.entity.UserEntity;
 import com.appdeveloperblog.app.ws.service.UserService;
 import com.appdeveloperblog.app.ws.share.dto.AddressDTO;
 import com.appdeveloperblog.app.ws.share.dto.UserDto;
+import com.appdeveloperblog.app.ws.shared.AmazonSES;
 import com.appdeveloperblog.app.ws.shared.Utils;
 import com.appdeveloperblog.app.ws.ui.model.response.ErrorMessages;
 
@@ -58,9 +60,17 @@ public class UserServiceImpl implements UserService
 		String publicUserId = utils.generateUserId(30);
 		userEntity.setEncryptedPassword(bCryptPasswordEncoder.encode(user.getPassword()));
 		userEntity.setUserId(publicUserId);
+		userEntity.setEmailVerificationToken(utils.generateEmailVerificationToken(publicUserId));
+		userEntity.setEmailVerificationStatus(false);
 		UserEntity storedUserDetails = userRepository.save(userEntity);
+
+		
+		
 		//BeanUtils.copyProperties(storedUserDetails, returnValue);
 		UserDto returnValue = modelMapper.map(storedUserDetails, UserDto.class);
+
+		// send email verification to users
+		new AmazonSES().verifyEmail(returnValue);
 		return returnValue;
 	}
 
@@ -68,8 +78,9 @@ public class UserServiceImpl implements UserService
 	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 		UserEntity userEntity = userRepository.findByEmail(email);
 		if(userEntity == null) throw new UsernameNotFoundException(email);
-
-		return new User(userEntity.getEmail(), userEntity.getEncryptedPassword(), new ArrayList<>());
+		return new User(userEntity.getEmail(), userEntity.getEncryptedPassword(), 
+		userEntity.getEmailVerificationStatus(), true, true, true, new ArrayList<>());
+		//return new User(userEntity.getEmail(), userEntity.getEncryptedPassword(), new ArrayList<>());
 	}
 
 	@Override
@@ -127,4 +138,24 @@ public class UserServiceImpl implements UserService
 		return returnValue;
 	}
 
+	@Override
+	public boolean verifyEmailToken(String token) {
+	    boolean returnValue = false;
+
+        // Find user by token
+        UserEntity userEntity = userRepository.findUserByEmailVerificationToken(token);
+
+        if (userEntity != null) {
+            boolean hastokenExpired = Utils.hasTokenExpired(token);
+            if (!hastokenExpired) {
+                userEntity.setEmailVerificationToken(null);
+                userEntity.setEmailVerificationStatus(Boolean.TRUE);
+                userRepository.save(userEntity);
+                returnValue = true;
+            }
+        }
+
+		return returnValue;
+
+	}
 }
