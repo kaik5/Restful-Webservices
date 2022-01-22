@@ -9,7 +9,11 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,9 +24,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import com.appdeveloperblog.app.ws.Exceptions.UserServiceException;
@@ -31,6 +40,7 @@ import com.appdeveloperblog.app.ws.service.AddressService;
 import com.appdeveloperblog.app.ws.service.UserService;
 import com.appdeveloperblog.app.ws.share.dto.AddressDTO;
 import com.appdeveloperblog.app.ws.share.dto.UserDto;
+import com.appdeveloperblog.app.ws.shared.Roles;
 import com.appdeveloperblog.app.ws.ui.model.request.PasswordResetModel;
 import com.appdeveloperblog.app.ws.ui.model.request.PasswordResetRequestModel;
 import com.appdeveloperblog.app.ws.ui.model.request.UserDetailRequestModel;
@@ -51,10 +61,12 @@ public class UserController {
 
 	@Autowired
 	AddressService addressService;
-
+	
 	@Autowired
 	PasswordResetTokenRepository passwordResetTokenRepository;
 
+	@ApiOperation(value = "Get User Details", notes = "This endpoint returns user details. Path: users/{userId}")
+	@ApiImplicitParams({@ApiImplicitParam(name = "authorization", value = "Bearer JWT Token", paramType = "header")})
 	@GetMapping(path = "/{id}", produces = { MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
 	public UserRest getUser(@PathVariable String id) {
 		UserRest returnValue = new UserRest();
@@ -64,13 +76,14 @@ public class UserController {
 		return returnValue;
 	}
 
+	@ApiOperation(value = "Create User")
 	@PostMapping(consumes = { MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE }, produces = {
 			MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
 	public UserRest createUser(@RequestBody UserDetailRequestModel userDetails) throws Exception {
 		UserRest returnValue = new UserRest();
 		ModelMapper modelMapper = new ModelMapper();
 		UserDto userDto = modelMapper.map(userDetails, UserDto.class);
-
+		userDto.setRoles(new HashSet<>(Arrays.asList(Roles.ROLE_USER.name())));
 		// UserDto userDto = new UserDto();
 		// BeanUtils.copyProperties(userDetails, userDto);
 		UserDto createdUser = userService.createUser(userDto);
@@ -80,6 +93,7 @@ public class UserController {
 		return returnValue;
 	}
 
+	@ApiOperation(value = "Update User Info", notes = "endpoint: users/{id}")
 	@PutMapping(path = "/{id}", produces = { MediaType.APPLICATION_ATOM_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
 	public UserRest updateUser(@PathVariable String id, @RequestBody UserDetailRequestModel userDetails) {
 		UserRest returnValue = new UserRest();
@@ -95,6 +109,10 @@ public class UserController {
 
 	}
 
+	//@Secured("ROLE_ADMIN")
+	//@PreAuthorize("hasAuthority('AUTHORITY_DELETE')")
+	@PreAuthorize("hasRole('ADMIN') or #id == principal.userId")
+	@ApiOperation(value = "Delete User", notes = "endpoint: users/{id}")
 	@DeleteMapping(path = "/{id}", produces = { MediaType.APPLICATION_ATOM_XML_VALUE,
 			MediaType.APPLICATION_JSON_VALUE })
 	public OperationStatusModel deleteUser(@PathVariable String id) {
@@ -121,7 +139,7 @@ public class UserController {
 
 	}
 
-	// endpoint: .../userID/addresses
+	@ApiOperation(value = "Get User Addresses", notes = "endpoint: users/userID/addresses")
 	@GetMapping(path = "/{id}/addresses", produces = { MediaType.APPLICATION_ATOM_XML_VALUE,
 			MediaType.APPLICATION_JSON_VALUE })
 	public CollectionModel<AddressesRest> getUserAddresses(@PathVariable String id) {
@@ -157,10 +175,9 @@ public class UserController {
 				.withSelfRel();
 
 		return CollectionModel.of(returnValue, userLink, selfLink);
-
 	}
 
-	// endpoint: .../userID/addresses/addressId
+	@ApiOperation(value = "Get User Specific Address", notes = "endpoint: users/userID/addresses/addressId")
 	@GetMapping(path = "/{userId}/addresses/{addressId}", produces = { MediaType.APPLICATION_ATOM_XML_VALUE,
 			MediaType.APPLICATION_JSON_VALUE })
 	public EntityModel<AddressesRest> getUserAddress(@PathVariable String userId, @PathVariable String addressId) {

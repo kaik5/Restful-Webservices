@@ -1,15 +1,21 @@
 package com.appdeveloperblog.app.ws.io.entity;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.List;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+
 
 
 @Entity()
@@ -48,6 +54,23 @@ public class UserEntity implements Serializable {
 	public List<AddressEntity> getAddresses() {
 		return addresses;
 	}
+
+	
+
+	public Collection<RoleEntity> getRoles() {
+		return roles;
+	}
+
+	public void setRoles(Collection<RoleEntity> roles) {
+		this.roles = roles;
+	}
+
+
+
+	@ManyToMany(cascade = {CascadeType.PERSIST}, fetch = FetchType.EAGER)
+	@JoinTable(name = "users_roles", joinColumns = @JoinColumn(name = "users_id", 
+	referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "roles_id", referencedColumnName = "id"))
+	private Collection<RoleEntity> roles;
 
 	public void setAddresses(List<AddressEntity> addresses) {
 		this.addresses = addresses;

@@ -1,33 +1,47 @@
 package com.appdeveloperblog.app.ws.security;
 
+import java.util.Arrays;
+
+import com.appdeveloperblog.app.ws.io.respositories.UserRepository;
 import com.appdeveloperblog.app.ws.service.UserService;
 
-
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+@EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
 @EnableWebSecurity
 public class WebSecurity extends WebSecurityConfigurerAdapter 
 {
     private final UserService userDetailsService;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final UserRepository userRepository;
 
-    public WebSecurity(UserService userDetailsService, BCryptPasswordEncoder bCryptPasswordEncoder)
+    public WebSecurity(UserService userDetailsService, BCryptPasswordEncoder bCryptPasswordEncoder,
+    UserRepository userRepository)
     {
         this.userDetailsService = userDetailsService;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.userRepository = userRepository;
     }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception
     {
-        http.csrf()
+        http
+        .cors()
+        .and()
+        .csrf()
         .disable()
         .authorizeRequests()
         .antMatchers(HttpMethod.POST, SecurityConstants.SIGN_UP_URL)
@@ -38,13 +52,24 @@ public class WebSecurity extends WebSecurityConfigurerAdapter
         .permitAll()
         .antMatchers(HttpMethod.POST, SecurityConstants.PASSWORD_RESET_URL)
         .permitAll()
+        .antMatchers( SecurityConstants.H2_CONSOLE)
+        .permitAll()
+        .antMatchers("/v2/api-docs/**","/configuration/**","/swagger-ui.html","/webjars/**")
+        .permitAll()
+        .antMatchers("/swagger-resources/**")
+        .permitAll()
+        //.antMatchers(HttpMethod.DELETE, "/users/**")
+        //.hasAuthority("AUTHORITY_DELETE") // multiple authorities for the same action are also supported
         .anyRequest()
         .authenticated()
         .and()
         .addFilter(gAuthenticationFilter())
-        .addFilter(new AuthorizationFilter(authenticationManager()))
+        .addFilter(new AuthorizationFilter(authenticationManager(), userRepository))
         .sessionManagement()
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        // disable frame from broswer
+        http.headers().frameOptions().disable();
     }
 
     @Override
@@ -58,6 +83,20 @@ public class WebSecurity extends WebSecurityConfigurerAdapter
         final AuthenticationFilter filter = new AuthenticationFilter(authenticationManager());
         filter.setFilterProcessesUrl("/users/login");
         return filter;
+    }
+
+    @Bean
+    public CorsConfigurationSource configurationSource()
+    {
+        final CorsConfiguration configuration = new CorsConfiguration();
+    	   
+    	configuration.setAllowedOrigins(Arrays.asList("*"));
+    	configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE","OPTIONS"));
+    	configuration.setAllowCredentials(true);
+    	configuration.setAllowedHeaders(Arrays.asList("*"));
+    	final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    	source.registerCorsConfiguration("/**", configuration);
+    	return source;
     }
 
 

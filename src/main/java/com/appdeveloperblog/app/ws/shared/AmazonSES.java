@@ -15,6 +15,9 @@ import com.appdeveloperblog.app.ws.share.dto.UserDto;
  
 @Service
 public class AmazonSES {
+	final String AWS_URL = "ec2-35-88-121-223.us-west-2.compute.amazonaws.com:8080";
+	final String LOCAL_URL = "localhost:8000";
+	final String FINAL_URL = AWS_URL;
 	// This address must be verified with Amazon SES.
 	final String FROM = "kongjiajun555@outlook.com";
 
@@ -27,7 +30,7 @@ public class AmazonSES {
 	final String HTMLBODY = "<h1>Please verify your email address</h1>"
 			+ "<p>To complete registration process and be able to log in, "
 			+ "click on the link: "
-			+ "<a href='http://localhost:8080/verification-service/email-verification.html?token=$tokenValue'>"
+			+ "<a href='http://" + FINAL_URL + "/verification-service/email-verification.html?token=$tokenValue'>"
 			+ "Final step to complete your registration" + "</a><br/><br/>"
 			+ "Thank you!";
 
@@ -35,7 +38,7 @@ public class AmazonSES {
 	final String TEXTBODY = "Please verify your email address. "
 			+ "To complete registration process and be able to log in, "
 			+ "open the link in your browser: "
-			+ "http://localhost:8080/verification-service/email-verification.html?token=$tokenValue"
+			+ "http://" + FINAL_URL + "/verification-service/email-verification.html?token=$tokenValue"
 			+ " Thank you!";
 	
             //ec2-54-188-81-220.us-west-2.compute.amazonaws.com:8080
@@ -44,7 +47,7 @@ public class AmazonSES {
 		      + "<p>Hi, $firstName!</p> "
 		      + "<p>You are attempting to reset your password. Ignore if you did not request. "
 		      + "Otherwise please click on the link to create a new password: " 
-		      + "<a href='http://localhost:8080/verification-service/password-reset.html?token=$tokenValue'> "
+		      + "<a href='http://" + FINAL_URL + "/verification-service/password-reset.html?token=$tokenValue'> "
 		      + "Click on this link to Reset Password"
 		      + "</a><br/><br/>"
 		      + "Thank you!";
@@ -54,7 +57,7 @@ public class AmazonSES {
 		      + "Hi, $firstName! "
 		      + "You are attempting to reset your password. Ignore if you did not request. "
 		      + "Otherwise please open the link to create a new password: " 
-		      + "\nhttp://localhost:8080/verification-service/password-reset.html?token=$tokenValue "
+		      + "\nhttp://" + FINAL_URL +"/verification-service/password-reset.html?token=$tokenValue "
 		      + "Thank you!";
 	
 
